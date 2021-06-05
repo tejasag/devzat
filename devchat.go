@@ -581,13 +581,13 @@ func runCommands(line string, u *user, isSlack bool) {
 	}
 
 	if !isSlack { // actually sends the message
-		secret := false
+		public := true
 		for _, room := range secretRooms {
 			if room.name == u.room.name {
-				secret = true
+				public = false
 			}
 		}
-		b(u.name, line, secret)
+		b(u.name, line, public)
 	}
 
 	if u == nil { // is slack
