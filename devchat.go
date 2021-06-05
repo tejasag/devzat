@@ -58,8 +58,9 @@ var (
 	devbot      = "" // initialized in main
 	startupTime = time.Now()
 
-	mainRoom = &room{"#main", make([]*user, 0, 10), sync.Mutex{}}
-	rooms    = map[string]*room{mainRoom.name: mainRoom}
+	mainRoom    = &room{"#main", make([]*user, 0, 10), sync.Mutex{}}
+	rooms       = map[string]*room{mainRoom.name: mainRoom}
+	secretRooms = map[string]*room{mainRoom.name: mainRoom}
 
 	allUsers      = make(map[string]string, 400) //map format is u.id => u.name
 	allUsersMutex = sync.Mutex{}
@@ -490,8 +491,12 @@ func runCommands(line string, u *user, isSlack bool) {
 	}
 
 	toSlack := true
-	b := func(senderName, msg string) {
-		u.room.broadcast(senderName, msg, true)
+	b := func(senderName, msg string, args ...bool) {
+		def := true
+		if len(args) > 0 {
+			def = args[0]
+		}
+		u.room.broadcast(senderName, msg, def)
 	}
 
 	if strings.HasPrefix(line, "/hide") && !isSlack {
@@ -576,7 +581,13 @@ func runCommands(line string, u *user, isSlack bool) {
 	}
 
 	if !isSlack { // actually sends the message
-		b(u.name, line)
+		secret := false
+		for _, room := range secretRooms {
+			if room.name == u.room.name {
+				secret = true
+			}
+		}
+		b(u.name, line, secret)
 	}
 
 	if u == nil { // is slack
@@ -663,6 +674,20 @@ func runCommands(line string, u *user, isSlack bool) {
 			b("", fmt.Sprint("bell off"))
 		}
 		return
+	}
+	if strings.HasPrefix(line, "/secret") && !isSlack {
+		rest := strings.TrimSpace(strings.TrimPrefix(line, "/secret"))
+		if rest == "" {
+			b("", "Please enter the name of the room which is to be made secret")
+		}
+		if rest == "#main" {
+			b("", "You cannot make #main a secret room")
+		}
+		if v, ok := rooms[rest]; ok {
+			secretRooms[rest] = v
+		} else {
+			b("", "The specified room does not exist")
+		}
 	}
 	if strings.HasPrefix(line, "/room") && !isSlack {
 		rest := strings.TrimSpace(strings.TrimPrefix(line, "/room"))
