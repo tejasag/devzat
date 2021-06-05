@@ -677,16 +677,20 @@ func runCommands(line string, u *user, isSlack bool) {
 	}
 	if strings.HasPrefix(line, "/secret") && !isSlack {
 		rest := strings.TrimSpace(strings.TrimPrefix(line, "/secret"))
-		if rest == "" {
-			b("", "Please enter the name of the room which is to be made secret")
-		}
-		if rest == "#main" {
-			b("", "You cannot make #main a secret room")
-		}
-		if v, ok := rooms[rest]; ok {
-			secretRooms[rest] = v
+		if strings.HasPrefix(rest, "#") {
+			if rest == "" {
+				b("", "Please enter the name of the room which is to be made secret")
+			}
+			if rest == "#main" {
+				b("", "You cannot make #main a secret room")
+			}
+			if v, ok := rooms[rest]; ok {
+				secretRooms[rest] = v
+			} else {
+				b("", "The specified room does not exist")
+			}
 		} else {
-			b("", "The specified room does not exist")
+			b("", "Please prefix the room name with a #")
 		}
 	}
 	if strings.HasPrefix(line, "/room") && !isSlack {
